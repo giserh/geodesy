@@ -122,7 +122,7 @@ def get_area(in_raster, out_raster, max_size):
                 area_raster.save(r"%s\%s_%i_%i.tif" %(out_dir,out_basename[:-4], i, j))
 
                 
-                %xdel lat, area, area_raster
+                del lat, area, area_raster
                 #arcpy.Delete_management("in_memory")
                 gc.collect()
             

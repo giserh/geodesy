@@ -4,8 +4,13 @@ import arcpy
 import gc
 import os
 import glob
+import sys
+import zipfile
+import subprocess
 
 arcpy.env.overwriteOutput = True
+#@profile
+
 
 def get_raster_properties(raster):
     prop = {}
@@ -48,7 +53,7 @@ def get_raster_properties(raster):
     return prop
 
 
-def get_area(in_raster, out_raster, max_size):
+def get_area(in_raster, out_raster, max_size=10000):
 
     arcpy.AddMessage("Getting infos for {0}.".format(in_raster))
     
@@ -86,25 +91,37 @@ def get_area(in_raster, out_raster, max_size):
         y = float(prop["row"])/ max_size
         x = float(prop["col"])/ max_size
 
+        if math.trunc(y) == y:
+            i_range = range(math.trunc(y))
+        else:
+            i_range = range(math.trunc(y)+1)
+
+        if math.trunc(x) == x:
+            j_range = range(math.trunc(x))
+        else:
+            j_range = range(math.trunc(x)+1)
+
+
         arcpy.AddMessage("Calculate area for...")
         l = 0
-        for i in range(math.trunc(y)+1):
+        for i in i_range:
             
             if i == math.trunc(y):
                 row = int(round(((y- math.trunc(y)) * max_size)))
                 
             else:
                 row = max_size
-                
+
             miny = float(prop["top"]) - ((max_size * i + row) * d_lon)
             
-            for j in range(math.trunc(x)+1):
+            for j in j_range:
+                
 		l += 1
                 if j == math.trunc(x):
                     col = int(round((((x- math.trunc(x)) * max_size))))    
                 else:
                     col = max_size
-                
+
                 minx = float(prop["left"]) + (max_size * d_lat * j)
             
                 ll = arcpy.Point(minx,miny)
@@ -123,7 +140,7 @@ def get_area(in_raster, out_raster, max_size):
 
                 
                 del lat, area, area_raster
-                #arcpy.Delete_management("in_memory")
+                
                 gc.collect()
             
         input_rasters = glob.glob(r"%s\%s_*.tif" % (out_dir, out_basename[:-4]))
@@ -134,8 +151,14 @@ def get_area(in_raster, out_raster, max_size):
         arcpy.AddMessage("Deleting temporary files.")
         for input_raster in input_rasters:
             arcpy.Delete_management(input_raster)
-        #arcpy.Delete_management("in_memory")
-          
+                                     
         arcpy.AddMessage("Done.")
         gc.collect()
 
+
+if __name__ == '__main__':
+
+    if len(sys.argv) == 4:
+        get_area(sys.argv[1], sys.argv[2], int(sys.argv[3]))
+    else:
+        print "wrong number of arguments"
